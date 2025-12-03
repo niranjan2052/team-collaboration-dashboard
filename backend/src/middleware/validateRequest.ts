@@ -1,4 +1,3 @@
-import { message } from './../../node_modules/aws-sdk/clients/customerprofiles.d';
 // src/middleware/validateRequest.ts
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
