@@ -1,0 +1,116 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  projects       projects[]       @relation("UserProjects")
+  project_members project_members[]
+  tasks           tasks[]         @relation("TaskAssignedTo")
+  comments        task_comments[]
+  attachments     attachments[]
+  refresh_tokens  refresh_tokens[]
+}
+
+model projects {
+  id          String   @id @default(uuid())
+  owner_id    String
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  owner           users           @relation("UserProjects", fields: [owner_id], references: [id])
+  project_members project_members[]
+  task_columns    task_columns[]
+  tasks           tasks[]
+}
+
+model project_members {
+  id         String   @id @default(uuid())
+  project_id String
+  user_id    String
+  role       String   @default("MEMBER") // OWNER | ADMIN | MEMBER
+  created_at DateTime @default(now())
+
+  project projects @relation(fields: [project_id], references: [id])
+  user    users    @relation(fields: [user_id], references: [id])
+}
+
+model task_columns {
+  id         String   @id @default(uuid())
+  project_id String
+  name       String
+  position   Int
+  created_at DateTime @default(now())
+
+  project projects @relation(fields: [project_id], references: [id])
+  tasks   tasks[]
+}
+
+model tasks {
+  id          String   @id @default(uuid())
+  project_id  String
+  column_id   String
+  title       String
+  description String?
+  assignee_id String?
+  position    Int      @default(9999)
+  due_date    DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  project     projects      @relation(fields: [project_id], references: [id])
+  column      task_columns  @relation(fields: [column_id], references: [id])
+  assignee    users?        @relation("TaskAssignedTo", fields: [assignee_id], references: [id])
+  comments    task_comments[]
+  attachments attachments[]
+}
+
+model task_comments {
+  id         String   @id @default(uuid())
+  task_id    String
+  author_id  String
+  content    String
+  created_at DateTime @default(now())
+
+  task   tasks @relation(fields: [task_id], references: [id])
+  author users @relation(fields: [author_id], references: [id])
+}
+
+model attachments {
+  id          String   @id @default(uuid())
+  task_id     String
+  file_name   String
+  file_url    String
+  file_size   Int
+  mime_type   String
+  uploaded_by String
+  created_at  DateTime @default(now())
+
+  task    tasks @relation(fields: [task_id], references: [id])
+  uploader users @relation(fields: [uploaded_by], references: [id])
+}
+
+model refresh_tokens {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user users @relation(fields: [user_id], references: [id])
+}
