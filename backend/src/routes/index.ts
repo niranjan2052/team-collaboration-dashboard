@@ -19,7 +19,7 @@ router.use("/projects", projectRoutes);
 // ---------- TASKS ----------
 // /projects/:projectId/tasks
 // /tasks/:taskId
-router.use("/", taskRoutes);
+router.use("/tasks", taskRoutes);
 
 // ---------- COMMENTS ----------
 // /tasks/:taskId/comments
