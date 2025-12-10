@@ -7,16 +7,21 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
+  // FIX: Allow CORS preflight OPTIONS to pass through
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
   try {
     const header = req.headers.authorization;
 
-    if (!header || !header.startsWith("Bearer "))
+    if (!header || !header.startsWith("Bearer ")) {
       return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const token = header.split(" ")[1] || "";
-
     const decoded = verifyAccessToken(token);
-    // Attach user to req
+
     // @ts-ignore
     req.user = decoded;
 

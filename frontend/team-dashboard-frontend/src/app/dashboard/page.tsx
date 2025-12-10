@@ -17,6 +17,10 @@ export default function DashboardPage() {
   const { user, accessToken, hydrated, loadFromStorage, logout } =
     useAuthStore();
 
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,6 +55,22 @@ export default function DashboardPage() {
     fetchProjects();
   }, [hydrated, accessToken]);
 
+  const createProject = async () => {
+    try {
+      await apiClient.post("/projects", {
+        name: newName,
+        description: newDesc,
+      });
+
+      setShowCreate(false);
+      setNewName("");
+      setNewDesc("");
+      router.refresh(); // reload dashboard
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // 4️⃣ SAFE conditional rendering (NOT conditional return before hooks)
   if (!hydrated) {
     return <div className="p-6 text-slate-400">Loading session…</div>;
@@ -65,6 +85,13 @@ export default function DashboardPage() {
     <div className="min-h-screen flex">
       <aside className="w-60 bg-slate-900 border-r border-slate-800 p-4">
         <div className="font-semibold mb-4 text-lg">Team Dashboard</div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="rounded bg-indigo-600 px-3 py-2 text-sm hover:bg-indigo-500 transition"
+        >
+          + New Project
+        </button>
+
         <div className="text-sm text-slate-400 mb-6">
           Logged in as <span className="text-slate-100">{user?.name}</span>
         </div>
@@ -105,6 +132,43 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-slate-900 p-6 rounded-lg w-80 border border-slate-700">
+            <h2 className="text-lg font-semibold mb-3">Create Project</h2>
+
+            <input
+              placeholder="Project name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full mb-3 px-3 py-2 bg-slate-800 rounded border border-slate-700 outline-none"
+            />
+
+            <textarea
+              placeholder="Description"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              className="w-full mb-3 px-3 py-2 bg-slate-800 rounded border border-slate-700 outline-none"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCreate(false)}
+                className="px-3 py-2 text-sm text-red-400"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={createProject}
+                className="px-3 py-2 text-sm bg-indigo-600 rounded hover:bg-indigo-500"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,14 +9,20 @@ export default function Home() {
   const router = useRouter();
   const { accessToken, hydrated, loadFromStorage } = useAuthStore();
 
+  // Load auth data from storage ONCE
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  if (!hydrated) return <div className="p-6">Preparing session…</div>;
+  // Redirect ONLY after hydrated
+  useEffect(() => {
+    if (!hydrated) return;
 
-  if (accessToken) router.replace("/dashboard");
-  else router.replace("/login");
+    if (accessToken) router.replace("/dashboard");
+    else router.replace("/login");
+  }, [hydrated, accessToken, router]);
+
+  if (!hydrated) return <div className="p-6">Preparing session…</div>;
 
   return <div className="p-6">Redirecting…</div>;
 }

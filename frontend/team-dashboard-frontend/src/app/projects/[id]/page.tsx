@@ -40,8 +40,18 @@ export default function ProjectBoardPage() {
   const router = useRouter();
   const { accessToken, hydrated, loadFromStorage } = useAuthStore();
 
+  const [showTaskCreate, setShowTaskCreate] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDesc, setTaskDesc] = useState("");
+  const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
+
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const openTaskModal = (columnId: string) => {
+    setSelectedColumn(columnId);
+    setShowTaskCreate(true);
+  };
 
   useEffect(() => {
     loadFromStorage();
@@ -58,9 +68,30 @@ export default function ProjectBoardPage() {
     }
   };
 
+  const createTask = async () => {
+    if (!selectedColumn) return;
+
+    try {
+      await apiClient.post(`/projects/${projectId}/tasks`, {
+        title: taskTitle,
+        description: taskDesc,
+        columnId: selectedColumn,
+      });
+
+      setShowTaskCreate(false);
+      setTaskTitle("");
+      setTaskDesc("");
+
+      fetchProject(); // reload board
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!accessToken) return;
     fetchProject();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   // Redirect after render - SAFE
@@ -166,6 +197,7 @@ export default function ProjectBoardPage() {
             <p className="text-sm text-slate-400">{project.description}</p>
           )}
         </div>
+
         <button
           onClick={() => router.push("/dashboard")}
           className="text-sm text-slate-300 hover:underline"
@@ -186,7 +218,7 @@ export default function ProjectBoardPage() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="w-72 flex-shrink-0 rounded-lg bg-slate-900 border border-slate-800 p-3"
+                    className="w-72 shrink-0 rounded-lg bg-slate-900 border border-slate-800 p-3"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="text-sm font-semibold">{col.name}</h2>
@@ -230,12 +262,55 @@ export default function ProjectBoardPage() {
                         ))}
                       {provided.placeholder}
                     </div>
+                    <button
+                      onClick={() => openTaskModal(col.id)}
+                      className="text-xs text-indigo-400 hover:underline"
+                    >
+                      + Add Task
+                    </button>
                   </div>
                 )}
               </Droppable>
             ))}
         </main>
       </DragDropContext>
+      {showTaskCreate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-slate-900 p-6 rounded-lg w-80 border border-slate-700">
+            <h2 className="text-lg font-semibold mb-3">New Task</h2>
+
+            <input
+              placeholder="Task Title"
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+              className="w-full mb-3 px-3 py-2 bg-slate-800 rounded border border-slate-700 outline-none"
+            />
+
+            <textarea
+              placeholder="Description"
+              value={taskDesc}
+              onChange={(e) => setTaskDesc(e.target.value)}
+              className="w-full mb-3 px-3 py-2 bg-slate-800 rounded border border-slate-700 outline-none"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowTaskCreate(false)}
+                className="px-3 py-2 text-sm text-red-400"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={createTask}
+                className="px-3 py-2 text-sm bg-indigo-600 rounded hover:bg-indigo-500"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

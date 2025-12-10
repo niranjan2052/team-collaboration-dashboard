@@ -1,35 +1,40 @@
-// src/app.ts
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRouter from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import "./config/mongo.js"; // initialize Mongo connection
+import "./config/mongo.js";
 
 const app = express();
 
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
+
+// 1) CORS MUST run before any route
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin: CLIENT_ORIGIN,
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
+
+// No wildcard OPTIONS in Express 5 — remove app.options("*")
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(morgan("dev"));
 
-// health check
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ status: "ok" });
 });
 
-// main API
+// Main router
 app.use("/api", apiRouter);
 
-// error handler (must be last)
+// Error handler
 app.use(errorHandler);
 
 export default app;
