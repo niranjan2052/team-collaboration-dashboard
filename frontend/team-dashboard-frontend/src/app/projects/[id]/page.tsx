@@ -5,12 +5,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/store/authStore";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
+import { DropResult } from "@hello-pangea/dnd";
+import NewTaskModal from "@/components/project/NewTaskModal";
+import Board from "@/components/project/Board";
 
 interface Task {
   id: string;
@@ -41,8 +38,6 @@ export default function ProjectBoardPage() {
   const { accessToken, hydrated, loadFromStorage } = useAuthStore();
 
   const [showTaskCreate, setShowTaskCreate] = useState(false);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDesc, setTaskDesc] = useState("");
   const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
 
   const [project, setProject] = useState<Project | null>(null);
@@ -68,30 +63,10 @@ export default function ProjectBoardPage() {
     }
   };
 
-  const createTask = async () => {
-    if (!selectedColumn) return;
-
-    try {
-      await apiClient.post(`/projects/${projectId}/tasks`, {
-        title: taskTitle,
-        description: taskDesc,
-        columnId: selectedColumn,
-      });
-
-      setShowTaskCreate(false);
-      setTaskTitle("");
-      setTaskDesc("");
-
-      fetchProject(); // reload board
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
     if (!accessToken) return;
     fetchProject();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   // Redirect after render - SAFE
@@ -207,109 +182,26 @@ export default function ProjectBoardPage() {
       </header>
 
       {/* ------------------- DRAG & DROP ------------------- */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <main className="flex gap-4 overflow-x-auto pb-4">
-          {project.task_columns
-            .slice()
-            .sort((a, b) => a.position - b.position)
-            .map((col) => (
-              <Droppable droppableId={col.id} key={col.id}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="w-72 shrink-0 rounded-lg bg-slate-900 border border-slate-800 p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-sm font-semibold">{col.name}</h2>
-                      <span className="text-xs text-slate-400">
-                        {col.tasks.length} tasks
-                      </span>
-                    </div>
+      <Board
+        columns={project.task_columns}
+        onDragEnd={onDragEnd}
+        openTaskModal={openTaskModal}
+      />
 
-                    <div className="space-y-2">
-                      {col.tasks
-                        .slice()
-                        .sort((a, b) => a.position - b.position)
-                        .map((task, index) => (
-                          <Draggable
-                            key={task.id}
-                            draggableId={task.id}
-                            index={index}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`rounded bg-slate-800 px-3 py-2 text-sm cursor-pointer transition
-                                  ${
-                                    snapshot.isDragging
-                                      ? "bg-slate-700 shadow-lg"
-                                      : ""
-                                  }
-                                `}
-                              >
-                                <div className="font-medium">{task.title}</div>
-                                {task.description && (
-                                  <div className="text-xs text-slate-400 line-clamp-2">
-                                    {task.description}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                      {provided.placeholder}
-                    </div>
-                    <button
-                      onClick={() => openTaskModal(col.id)}
-                      className="text-xs text-indigo-400 hover:underline"
-                    >
-                      + Add Task
-                    </button>
-                  </div>
-                )}
-              </Droppable>
-            ))}
-        </main>
-      </DragDropContext>
       {showTaskCreate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-slate-900 p-6 rounded-lg w-80 border border-slate-700">
-            <h2 className="text-lg font-semibold mb-3">New Task</h2>
+        <NewTaskModal
+          onClose={() => setShowTaskCreate(false)}
+          onCreate={async (title, description) => {
+            await apiClient.post(`/projects/${projectId}/tasks`, {
+              title,
+              description,
+              columnId: selectedColumn,
+            });
 
-            <input
-              placeholder="Task Title"
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-              className="w-full mb-3 px-3 py-2 bg-slate-800 rounded border border-slate-700 outline-none"
-            />
-
-            <textarea
-              placeholder="Description"
-              value={taskDesc}
-              onChange={(e) => setTaskDesc(e.target.value)}
-              className="w-full mb-3 px-3 py-2 bg-slate-800 rounded border border-slate-700 outline-none"
-            />
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowTaskCreate(false)}
-                className="px-3 py-2 text-sm text-red-400"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={createTask}
-                className="px-3 py-2 text-sm bg-indigo-600 rounded hover:bg-indigo-500"
-              >
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
+            setShowTaskCreate(false);
+            fetchProject();
+          }}
+        />
       )}
     </div>
   );
