@@ -163,6 +163,15 @@ export default function ProjectBoardPage() {
     return <div className="p-6 text-slate-400">Redirecting…</div>;
   }
 
+  const onDelete = async (taskId: string): Promise<void> => {
+    try {
+      await apiClient.delete(`/tasks/${taskId}`);
+      fetchProject();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col p-6 gap-4">
       <header className="flex items-center justify-between">
@@ -186,6 +195,7 @@ export default function ProjectBoardPage() {
         columns={project.task_columns}
         onDragEnd={onDragEnd}
         openTaskModal={openTaskModal}
+        onDelete={onDelete}
       />
 
       {showTaskCreate && (

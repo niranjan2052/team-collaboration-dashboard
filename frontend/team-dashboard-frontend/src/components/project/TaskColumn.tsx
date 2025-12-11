@@ -7,9 +7,10 @@ import type { Column } from "@/types/kanban";
 interface TaskColumnProps {
   column: Column;
   openTaskModal: (columnId: string) => void;
+  onDelete:(taskId: string) => Promise<void>;
 }
 
-export default function TaskColumn({ column, openTaskModal }: TaskColumnProps) {
+export default function TaskColumn({ column, openTaskModal,onDelete }: TaskColumnProps) {
   return (
     <Droppable droppableId={column.id}>
       {(provided) => (
@@ -30,7 +31,7 @@ export default function TaskColumn({ column, openTaskModal }: TaskColumnProps) {
               .slice()
               .sort((a, b) => a.position - b.position)
               .map((task, index) => (
-                <TaskCard key={task.id} task={task} index={index} />
+                <TaskCard key={task.id} task={task} index={index} onDelete={onDelete} />
               ))}
 
             {provided.placeholder}
